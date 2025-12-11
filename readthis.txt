@@ -1,0 +1,16 @@
+Firebase Configuration (The Connection):
+Go to Google Firebase.
+
+Go to the Firebase Console.
+
+Create a project (e.g., "UniMusicProject").
+
+Click the Web Icon (</>) to register an app.
+
+Copy the firebaseConfig object provided.
+
+Enable Auth: Go to Build -> Authentication -> Sign-in method -> Enable Google.
+
+Go to src/config/firebase.js and paste your keys.
+
+Run 'npm start' in your terminal.
