@@ -1,47 +1,43 @@
-import React, { useEffect, useState, memo } from "react";
+import React, { useEffect, useState, memo, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { useSingleCourseProgress } from "../hooks/useCourseProgress";
 import { markLessonAsComplete } from "../utils/progressUtils";
-import CommentSection from './CommentSection';
+import CommentSection from "./CommentSection";
 
-
-// --- PROGRESS-TRACKING VIDEO PLAYER ---
-const VideoPlayer = memo(({ url, onProgress, onEnded }) => {
+// --- SIMPLIFIED VIDEO PLAYER ---
+const VideoPlayer = memo(({ url, onEnded }) => {
   const isYouTube = url && (url.includes('youtube.com') || url.includes('youtu.be'));
+  
+  // Ref to safely handle the onEnded callback without re-rendering loop
+  const onEndedRef = useRef(onEnded);
 
-  // 1. YouTube Listener (Time & End Detection)
+  useEffect(() => {
+    onEndedRef.current = onEnded;
+  }, [onEnded]);
+
   useEffect(() => {
     if (!isYouTube) return;
 
     const handleMessage = (event) => {
+      // Security check
       if (!event.origin.includes("youtube") && !event.origin.includes("youtube-nocookie")) return;
 
       try {
         const data = JSON.parse(event.data);
-
-        // A. Detect "Ended" State
+        // YouTube "Ended" Event (State = 0)
         if (data.event === "onStateChange" && data.info === 0) {
-          onEnded();
-        }
-
-        // B. Detect Progress (infoDelivery often contains currentTime & duration)
-        if (data.event === "infoDelivery" && data.info) {
-          const { currentTime, duration } = data.info;
-          if (currentTime && duration) {
-            const percent = (currentTime / duration) * 100;
-            onProgress(percent);
-          }
+          if (onEndedRef.current) onEndedRef.current();
         }
       } catch (err) {
-        // Ignore parsing errors
+        // Ignore
       }
     };
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [isYouTube, onProgress, onEnded]);
+  }, [isYouTube]);
 
   const getYouTubeId = (link) => {
     if (!link) return null;
@@ -53,13 +49,15 @@ const VideoPlayer = memo(({ url, onProgress, onEnded }) => {
 
   if (isYouTube) {
     const videoId = getYouTubeId(url);
+    // Adding origin helps with browser security restrictions
+    const origin = window.location.origin; 
+    
     return (
       <iframe
         key={videoId} 
         width="100%"
         height="100%"
-        // enablejsapi=1 is REQUIRED for tracking time
-        src={`https://www.youtube-nocookie.com/embed/${videoId}?enablejsapi=1&rel=0&modestbranding=1`}
+        src={`https://www.youtube-nocookie.com/embed/${videoId}?enablejsapi=1&origin=${origin}&rel=0&modestbranding=1`}
         title="Lesson Video"
         frameBorder="0"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -69,8 +67,6 @@ const VideoPlayer = memo(({ url, onProgress, onEnded }) => {
     );
   }
 
-  // 2. Native HTML5 Player (Firebase/MP4)
-  // This is very reliable for progress tracking
   return (
     <video 
       src={url} 
@@ -78,13 +74,6 @@ const VideoPlayer = memo(({ url, onProgress, onEnded }) => {
       width="100%" 
       height="100%"
       onEnded={onEnded}
-      onTimeUpdate={(e) => {
-         const { currentTime, duration } = e.target;
-         if (duration > 0) {
-           const percent = (currentTime / duration) * 100;
-           onProgress(percent);
-         }
-      }}
       style={{ outline: 'none', backgroundColor: 'black' }}
     >
       Your browser does not support the video tag.
@@ -101,7 +90,7 @@ function LessonPage() {
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  // State to track if video requirements are met
+  // This state unlocks the button
   const [videoFinished, setVideoFinished] = useState(false); 
 
   const { completedLessons, loading: loadingProgress } = useSingleCourseProgress(courseId);
@@ -152,15 +141,9 @@ function LessonPage() {
     }
   };
 
-  // --- PROGRESS HANDLER ---
-  // Unlocks the button if progress > 60% OR video ends
-  const handleProgress = (percent) => {
-     // You can change '60' to any percentage you want
-     if (percent > 60 && !videoFinished) {
-         setVideoFinished(true);
-         console.log(`Video unlocked at ${Math.round(percent)}%`);
-     }
-  };
+  const handleVideoEnded = useCallback(() => {
+      setVideoFinished(true);
+  }, []);
 
   const videoUrl = lesson ? (lesson.URL || lesson.videoUrl || lesson.url || lesson.link) : null;
   const canComplete = isCompleted || videoFinished;
@@ -181,20 +164,13 @@ function LessonPage() {
       <div style={styles.videoPlayerWrapper}>
         <VideoPlayer 
           url={videoUrl} 
-          onProgress={handleProgress}
-          onEnded={() => setVideoFinished(true)} 
+          onEnded={handleVideoEnded} 
         />
       </div>
 
       <div style={styles.controlsArea}>
-        {/* Helper Text */}
-        {!canComplete && (
-           <p style={{fontSize: '14px', color: '#666', marginBottom: '10px'}}>
-             Watch at least 60% of the video to unlock.
-           </p>
-        )}
-
-        {/* Manual Fallback (Just in case specific browsers block tracking) */}
+        
+        {/* CHECKBOX: The main way to unlock the lesson manually */}
         {!canComplete && (
            <div style={styles.fallbackBox}>
              <label style={styles.checkboxLabel}>
@@ -203,7 +179,7 @@ function LessonPage() {
                   style={{transform: "scale(1.3)", marginRight: "10px", cursor: "pointer"}}
                   onChange={(e) => setVideoFinished(e.target.checked)}
                />
-               I have finished watching
+               I have finished watching the video
              </label>
            </div>
         )}
@@ -213,10 +189,18 @@ function LessonPage() {
           style={isCompleted ? styles.completedButton : (canComplete ? styles.completeButton : styles.disabledButton)}
           disabled={!canComplete}
         >
-          {isCompleted ? "✓ Lesson Completed" : (canComplete ? "Mark as Complete & Continue" : "Locked")}
+          {isCompleted ? "✓ Lesson Completed" : (canComplete ? "Mark as Complete & Continue" : "Locked: Finish Video")}
         </button>
       </div>
-      <CommentSection courseId={courseId} lessonId={lessonId} />
+
+      <div style={styles.divider}></div>
+      
+      {/* COMMENTS */}
+      <CommentSection 
+        courseId={courseId} 
+        lessonId={lessonId} 
+        courseCreatorId={course?.creatorId} 
+      />
     </div>
   );
 }
@@ -265,11 +249,12 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    gap: "15px"
+    gap: "20px",
+    marginBottom: "40px"
   },
   fallbackBox: {
     backgroundColor: "white",
-    padding: "10px 20px",
+    padding: "15px 25px",
     borderRadius: "8px",
     border: "1px solid #ddd",
     boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
@@ -279,7 +264,7 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     cursor: "pointer",
-    fontSize: "14px",
+    fontSize: "16px",
     fontWeight: "500",
     color: "#333"
   },
@@ -315,5 +300,10 @@ const styles = {
     fontSize: "18px",
     fontWeight: "bold",
     cursor: "not-allowed",
+  },
+  divider: {
+    maxWidth: "800px",
+    margin: "40px auto 20px",
+    borderTop: "1px solid #ddd"
   }
 };

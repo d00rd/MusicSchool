@@ -9,8 +9,11 @@ import Main from './pages/Main';
 import InstrumentPage from './pages/InstrumentPage';
 import CoursePage from './pages/CoursePage';
 import LessonPage from './pages/LessonPage';
-import VideoTestPage from './pages/VideoTestPage'; // NEW IMPORT
-import MyCoursesPage from './pages/MyCoursesPage'; // NEW IMPORT
+import VideoTestPage from './pages/VideoTestPage'; 
+import MyCoursesPage from './pages/MyCoursesPage'; 
+import TutorProfile from './pages/TutorProfile';
+import CreateCourse from './pages/CreateCourse';
+import AdminDashboard from './pages/AdminDashboard.js';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -48,7 +51,7 @@ function App() {
         <Route path="/main" element={
           isAuthenticated ? <Main /> : <Navigate to="/login" />
         } />
-        <Route path="/instrument/:instrumentId" element={
+        <Route path="/instrument/:id" element={
           isAuthenticated ? <InstrumentPage /> : <Navigate to="/login" />
         } />
         <Route path="/course/:courseId" element={
@@ -57,6 +60,15 @@ function App() {
         <Route path="/course/:courseId/lesson/:lessonId" element={
           isAuthenticated ? <LessonPage /> : <Navigate to="/login" />
         } />
+        <Route path="/tutor/profile" element={
+          isAuthenticated ? <TutorProfile /> : <Navigate to="/login" />
+        } />
+        <Route path="/tutor/create-course" element={
+          isAuthenticated ? <CreateCourse /> : <Navigate to="/login" />
+        } />
+        <Route path="/admin" element={
+          isAuthenticated ? <AdminDashboard /> : <Navigate to="/login" />
+          } />
       </Routes>
     </BrowserRouter>
   );
