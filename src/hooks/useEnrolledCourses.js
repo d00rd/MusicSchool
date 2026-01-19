@@ -42,7 +42,7 @@ export function useEnrolledCourses() {
         };
 
         fetchEnrolledCourses();
-    }, []); 
+    }, [auth.currentUser]); 
 
     return { courses, loading };
 }
