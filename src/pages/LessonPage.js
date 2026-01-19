@@ -4,6 +4,8 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { useSingleCourseProgress } from "../hooks/useCourseProgress";
 import { markLessonAsComplete } from "../utils/progressUtils";
+import CommentSection from './CommentSection';
+
 
 // --- PROGRESS-TRACKING VIDEO PLAYER ---
 const VideoPlayer = memo(({ url, onProgress, onEnded }) => {
@@ -214,6 +216,7 @@ function LessonPage() {
           {isCompleted ? "✓ Lesson Completed" : (canComplete ? "Mark as Complete & Continue" : "Locked")}
         </button>
       </div>
+      <CommentSection courseId={courseId} lessonId={lessonId} />
     </div>
   );
 }
