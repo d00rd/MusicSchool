@@ -14,6 +14,7 @@ import MyCoursesPage from './pages/MyCoursesPage';
 import TutorProfile from './pages/TutorProfile';
 import CreateCourse from './pages/CreateCourse';
 import AdminDashboard from './pages/AdminDashboard.js';
+import TutorNotifications from './pages/TutorNotifications';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -69,6 +70,9 @@ function App() {
         <Route path="/admin" element={
           isAuthenticated ? <AdminDashboard /> : <Navigate to="/login" />
           } />
+        <Route path="/tutor/notifications" element={
+          isAuthenticated ? <TutorNotifications /> : <Navigate to="/login" />
+        } />
       </Routes>
     </BrowserRouter>
   );

@@ -73,9 +73,19 @@ function Main() {
 
                     {/* TUTOR BUTTONS */}
                     {(role === 'tutor' || role === 'admin') && (
-                        <button onClick={() => navigate('/tutor/create-course')} style={styles.tutorButton}>
-                            Manage Courses
-                        </button>
+                        <>
+                            <button onClick={() => navigate('/tutor/create-course')} style={styles.tutorButton}>
+                                Manage Courses
+                            </button>
+                            <button onClick={() => navigate('/tutor/profile')} style={styles.tutorButton}>
+                                Edit Bio
+                            </button>
+                            
+                            {/* NEW NOTIFICATION BUTTON */}
+                            <button onClick={() => navigate('/tutor/notifications')} style={styles.notifButton}>
+                                🔔 Alerts
+                            </button>
+                        </>
                     )}
 
                     <button onClick={() => navigate('/my-courses')} style={styles.myCoursesButton}>
@@ -118,4 +128,14 @@ const styles = {
     subtitle: { textAlign: "center", marginBottom: "30px", color: "#555" },
     instrumentGrid: { display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "20px" },
     card: { width: "250px", padding: "30px", backgroundColor: "#fff", borderRadius: "10px", boxShadow: "0 4px 8px rgba(0,0,0,0.1)", cursor: "pointer", textAlign: "center", transition: "transform 0.2s" },
+
+    notifButton: { 
+    padding: '8px 16px', 
+    backgroundColor: '#ff9800', 
+    color: '#fff', 
+    border: 'none', 
+    borderRadius: '5px', 
+    cursor: 'pointer', 
+    fontWeight: 'bold' 
+},
 };
